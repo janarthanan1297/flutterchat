@@ -24,7 +24,7 @@ class DatabaseMethods {
   }
 
   getChats(String chatRoomId) async {
-    return FirebaseFirestore.instance.collection("chatRoom").doc(chatRoomId).collection("chats").orderBy('time').snapshots();
+    return FirebaseFirestore.instance.collection("chatRoom").doc(chatRoomId).collection("chats").orderBy('time', descending: true).snapshots();
   }
 
   Future<void> addMessage(String chatRoomId, chatMessageData) async {

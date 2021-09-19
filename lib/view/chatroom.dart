@@ -356,7 +356,7 @@ class ChatRoomsTile extends StatelessWidget {
       child: Card(
         elevation: 3,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          padding: EdgeInsets.symmetric(horizontal: 7, vertical: 15),
           child: Row(
             children: [
               Column(
@@ -423,7 +423,7 @@ class ChatRoomsTile extends StatelessWidget {
                                 child: Row(
                                   children: [
                                     SizedBox(
-                                      width: 175,
+                                      width: 165,
                                       child: Text(message,
                                           overflow: TextOverflow.ellipsis,
                                           maxLines: 1,

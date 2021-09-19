@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutterchat/data/database.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:swipedetector/swipedetector.dart';
+import 'package:sticky_headers/sticky_headers.dart';
 import 'package:flutterchat/view/chatroom.dart';
 import 'package:intl/intl.dart';
 
@@ -24,7 +25,7 @@ class _ChatState extends State<Chat> {
   FocusNode _focusNode1 = FocusNode();
   DateTime val = DateTime.parse(new DateFormat('yyyy-MM-dd').format(new DateTime.now()));
   ScrollController _scrollController = new ScrollController();
-  String today = '';
+  ValueNotifier<String> today = ValueNotifier<String>('');
   var value;
   var visible;
 
@@ -32,26 +33,24 @@ class _ChatState extends State<Chat> {
     return StreamBuilder(
       stream: chats,
       builder: (context, AsyncSnapshot snapshot) {
-        WidgetsBinding.instance!.addPostFrameCallback((_) {
-          Timer(
-            Duration(microseconds: 200),
-            () => _scrollController.jumpTo(_scrollController.position.maxScrollExtent + 1000),
-          );
-        });
         if (!snapshot.hasData) {
           return Container();
         }
         WidgetsBinding.instance!.addPostFrameCallback((_) {
-          Timer(
-            Duration(microseconds: 200),
-            () => _scrollController.jumpTo(_scrollController.position.maxScrollExtent),
-          );
+          _scrollController.jumpTo(0.0);
+          var date = snapshot.data!.docs[0]["Date"].toString();
+          var _date = DateFormat('yyyy-MM-dd', 'en_US').parseLoose(date);
+          WidgetsBinding.instance!.addPostFrameCallback((_) {
+            if (_date.isAtSameMomentAs(val)) {
+              today.value = "Today";
+            }
+          });
         });
 
         return snapshot.hasData
             ? ListView.builder(
                 shrinkWrap: true,
-                reverse: false,
+                reverse: true,
                 controller: _scrollController,
                 itemCount: snapshot.data!.docs.length,
                 itemBuilder: (context, index) {
@@ -59,22 +58,24 @@ class _ChatState extends State<Chat> {
                   var count = length - 1;
                   var date = snapshot.data!.docs[index]["Date"].toString();
                   var _date = DateFormat('yyyy-MM-dd', 'en_US').parseLoose(date);
-                  if (_date.isAtSameMomentAs(val)) {
-                    today = "Today";
-                  } else {
-                    today = snapshot.data!.docs[index]["date"].toString();
-                  }
+                  WidgetsBinding.instance!.addPostFrameCallback((_) {
+                    if (_date.isAtSameMomentAs(val)) {
+                      today.value = "Today";
+                    } else {
+                      today.value = snapshot.data!.docs[index]["date"].toString();
+                    }
+                  });
                   if (value != _date) {
                     value = _date;
                     visible = true;
                   } else {
                     visible = false;
                   }
+
                   return (snapshot.data!.docs[index]["message"] == null)
                       ? ImageTile(
                           sendByMe: Constants.myName == snapshot.data!.docs[index]["sendBy"],
                           time: snapshot.data!.docs[index]["msgtime"],
-                          date: today,
                           chatRoomId: widget.chatRoomId,
                           index: index,
                           visible: visible,
@@ -83,7 +84,6 @@ class _ChatState extends State<Chat> {
                           message: snapshot.data!.docs[index]["message"],
                           sendByMe: Constants.myName == snapshot.data!.docs[index]["sendBy"],
                           time: snapshot.data!.docs[index]["msgtime"],
-                          date: today,
                           index: index,
                           length: count,
                           visible: visible,
@@ -157,12 +157,27 @@ class _ChatState extends State<Chat> {
       ),
       body: GestureDetector(
         onTap: () {
-          // FocusScope.of(context).requestFocus(new FocusNode());
+          FocusScope.of(context).requestFocus(new FocusNode());
         },
         child: Container(
           child: Stack(
             children: [
               chatMessages(),
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(5)),
+                    child: ValueListenableBuilder(
+                      valueListenable: today,
+                      builder: (BuildContext context, String value, Widget? child) {
+                        return Text(
+                          today.value,
+                          style: TextStyle(fontSize: 16),
+                        );
+                      },
+                    )),
+              ),
               Container(
                 alignment: Alignment.bottomCenter,
                 width: MediaQuery.of(context).size.width,
@@ -171,48 +186,47 @@ class _ChatState extends State<Chat> {
                   color: Colors.transparent,
                   child: Row(
                     children: [
-                      Expanded(
+                      Flexible(
                           child: Container(
                         padding: EdgeInsets.only(left: 20),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(topLeft: Radius.circular(25), bottomLeft: Radius.circular(25)),
-                            boxShadow: []),
-                        child: TextField(
-                          controller: messageEditingController,
-                          keyboardType: TextInputType.multiline,
-                          focusNode: _focusNode1,
-                          onEditingComplete: (() {
-                            FocusScope.of(context).requestFocus(new FocusNode());
-                          }),
-                          minLines: 1,
-                          maxLines: null,
-                          style: TextStyle(fontSize: 16),
-                          decoration: InputDecoration(
-                              hintText: "Type a Message ...",
-                              hintStyle: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.all(Radius.circular(25)), boxShadow: []),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: messageEditingController,
+                                keyboardType: TextInputType.multiline,
+                                focusNode: _focusNode1,
+                                onEditingComplete: (() {
+                                  FocusScope.of(context).requestFocus(new FocusNode());
+                                }),
+                                minLines: 1,
+                                maxLines: null,
+                                style: TextStyle(fontSize: 16),
+                                decoration: InputDecoration(
+                                    hintText: "Type a Message ...",
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                    ),
+                                    border: InputBorder.none),
                               ),
-                              border: InputBorder.none),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                _filter();
+                              },
+                              child: Container(
+                                  height: 48,
+                                  width: 45,
+                                  child: Icon(
+                                    Icons.add_photo_alternate,
+                                    color: Colors.grey,
+                                  )),
+                            ),
+                          ],
                         ),
                       )),
-                      GestureDetector(
-                        onTap: () {
-                          _filter();
-                        },
-                        child: Container(
-                            height: 48,
-                            width: 45,
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.only(topRight: Radius.circular(25), bottomRight: Radius.circular(25))),
-                            padding: EdgeInsets.all(0),
-                            child: Icon(
-                              Icons.add_photo_alternate,
-                              color: Colors.grey,
-                            )),
-                      ),
                       SizedBox(
                         width: 5,
                       ),
@@ -243,23 +257,16 @@ class _ChatState extends State<Chat> {
 }
 
 class MessageTile extends StatelessWidget {
-  final String message, time, date;
+  final String message, time;
   final bool sendByMe, visible;
   final int index, length;
-  MessageTile(
-      {required this.message,
-      required this.sendByMe,
-      required this.time,
-      required this.index,
-      required this.length,
-      required this.date,
-      required this.visible});
+  MessageTile({required this.message, required this.sendByMe, required this.time, required this.index, required this.length, required this.visible});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Visibility(
+        /*  Visibility(
           visible: visible,
           child: Padding(
             padding: const EdgeInsets.only(top: 10),
@@ -273,7 +280,7 @@ class MessageTile extends StatelessWidget {
                   )),
             ),
           ),
-        ),
+        ), */
         Container(
           padding: EdgeInsets.only(top: 10, bottom: 0, left: sendByMe ? 0 : 20, right: sendByMe ? 20 : 0),
           alignment: sendByMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -307,7 +314,7 @@ class MessageTile extends StatelessWidget {
               )),
         ),
         SizedBox(
-          height: (index == length) ? 100 : 0,
+          height: (index == 0) ? 100 : 0,
         )
       ],
     );
@@ -315,11 +322,11 @@ class MessageTile extends StatelessWidget {
 }
 
 class ImageTile extends StatefulWidget {
-  final String time, chatRoomId, date;
+  final String time, chatRoomId;
   final bool sendByMe, visible;
   final int index;
 
-  ImageTile({required this.sendByMe, required this.time, required this.chatRoomId, required this.index, required this.date, required this.visible});
+  ImageTile({required this.sendByMe, required this.time, required this.chatRoomId, required this.index, required this.visible});
   @override
   _ImageTileState createState() => _ImageTileState();
 }
@@ -487,7 +494,7 @@ class _ImageTileState extends State<ImageTile> {
           }
           return Column(
             children: [
-              Visibility(
+              /* Visibility(
                 visible: widget.visible,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 10),
@@ -501,7 +508,7 @@ class _ImageTileState extends State<ImageTile> {
                         )),
                   ),
                 ),
-              ),
+              ), */
               Container(
                 padding: EdgeInsets.only(top: 10, bottom: 0, left: widget.sendByMe ? 0 : 20, right: widget.sendByMe ? 20 : 0),
                 alignment: widget.sendByMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -560,7 +567,7 @@ class _ImageTileState extends State<ImageTile> {
                     )),
               ),
               SizedBox(
-                height: (widget.index == count) ? 100 : 0,
+                height: (widget.index == 0) ? 100 : 0,
               )
             ],
           );
