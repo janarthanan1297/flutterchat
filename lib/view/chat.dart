@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutterchat/data/database.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:swipedetector/swipedetector.dart';
-import 'package:sticky_headers/sticky_headers.dart';
 import 'package:flutterchat/view/chatroom.dart';
 import 'package:intl/intl.dart';
 
@@ -266,21 +265,6 @@ class MessageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        /*  Visibility(
-          visible: visible,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Center(
-              child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(5)),
-                  child: Text(
-                    date,
-                    style: TextStyle(fontSize: 16),
-                  )),
-            ),
-          ),
-        ), */
         Container(
           padding: EdgeInsets.only(top: 10, bottom: 0, left: sendByMe ? 0 : 20, right: sendByMe ? 20 : 0),
           alignment: sendByMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -349,7 +333,12 @@ class _ImageTileState extends State<ImageTile> {
       MaterialPageRoute(
         builder: (ctx) => Scaffold(
           body: StreamBuilder(
-              stream: FirebaseFirestore.instance.collection("chatRoom").doc(widget.chatRoomId).collection("chats").orderBy('time').snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection("chatRoom")
+                  .doc(widget.chatRoomId)
+                  .collection("chats")
+                  .orderBy('time', descending: true)
+                  .snapshots(),
               builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (!snapshot.hasData) {
                   return Container();
@@ -488,27 +477,11 @@ class _ImageTileState extends State<ImageTile> {
             return Container();
           }
           var length = snapshot.data!.docs.length;
-          var count = length - 1;
           if (length == 0) {
             return Container();
           }
           return Column(
             children: [
-              /* Visibility(
-                visible: widget.visible,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Center(
-                    child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(5)),
-                        child: Text(
-                          widget.date,
-                          style: TextStyle(fontSize: 16),
-                        )),
-                  ),
-                ),
-              ), */
               Container(
                 padding: EdgeInsets.only(top: 10, bottom: 0, left: widget.sendByMe ? 0 : 20, right: widget.sendByMe ? 20 : 0),
                 alignment: widget.sendByMe ? Alignment.centerRight : Alignment.centerLeft,
