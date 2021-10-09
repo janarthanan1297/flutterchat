@@ -54,6 +54,7 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
             //show snackbar
           });
         }
+        // ignore: null_argument_to_non_null_type
         return Future.value();
       });
     } catch (err) {
